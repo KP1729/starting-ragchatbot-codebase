@@ -250,22 +250,43 @@ header h1 {
     color: var(--primary-color);
     text-decoration: none;
     transition: all 0.2s ease;
-    border-bottom: 1px solid transparent;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    display: inline-block;
+    margin: 0.15rem 0.2rem;
+    font-weight: 500;
 }
 
 .sources-content .source-link:hover {
-    color: var(--primary-hover);
-    border-bottom-color: var(--primary-color);
+    color: #ffffff;
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
 .sources-content .source-link:focus {
     outline: 2px solid var(--primary-color);
     outline-offset: 2px;
-    border-radius: 2px;
+    border-radius: 4px;
 }
 
 .sources-content .source-link:visited {
     color: #8b5cf6; /* Purple tint for visited links */
+    background: rgba(139, 92, 246, 0.08);
+    border-color: rgba(139, 92, 246, 0.2);
+}
+
+.sources-content .source-link:visited:hover {
+    color: #ffffff;
+    background: #8b5cf6;
+    border-color: #8b5cf6;
+}
+
+.sources-content .source-link:active {
+    transform: translateY(0);
 }
 
 /* Markdown formatting styles */
@@ -622,6 +643,52 @@ details[open] .suggested-header::before {
     color: var(--text-secondary);
     font-style: italic;
     text-transform: none;
+}
+
+/* New Chat Button */
+.new-chat-button {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: var(--background);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.new-chat-icon {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.new-chat-text {
+    flex: 1;
+}
+
+.new-chat-button:hover {
+    background: var(--surface-hover);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: translateX(2px);
+}
+
+.new-chat-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.new-chat-button:active {
+    transform: translateX(0);
 }
 
 /* Suggested Questions in Sidebar */

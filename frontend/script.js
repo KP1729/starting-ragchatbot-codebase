@@ -38,6 +38,14 @@ function setupEventListeners() {
             sendMessage();
         });
     });
+
+    // New chat button
+    const newChatButton = document.getElementById('newChatButton');
+    if (newChatButton) {
+        newChatButton.addEventListener('click', () => {
+            createNewSession();
+        });
+    }
 }
 
 
@@ -165,9 +173,44 @@ function escapeHtml(text) {
 // Removed removeMessage function - no longer needed since we handle loading differently
 
 async function createNewSession() {
+    // Store old session ID for potential backend cleanup
+    const oldSessionId = currentSessionId;
+
+    // Reset session state
     currentSessionId = null;
+
+    // Clear UI
     chatMessages.innerHTML = '';
+
+    // Add welcome message
     addMessage('Welcome to the Course Materials Assistant! I can help you with questions about courses, lessons and specific content. What would you like to know?', 'assistant', null, true);
+
+    // Focus input for immediate use
+    if (chatInput) {
+        chatInput.focus();
+    }
+
+    // Clear backend session if one existed
+    if (oldSessionId) {
+        clearBackendSession(oldSessionId);
+    }
+}
+
+async function clearBackendSession(sessionId) {
+    if (!sessionId) return;
+
+    try {
+        await fetch(`${API_URL}/session/clear`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ session_id: sessionId })
+        });
+    } catch (error) {
+        // Silent fail - session will be garbage collected eventually
+        console.warn('Failed to clear backend session:', error);
+    }
 }
 
 // Load course statistics
