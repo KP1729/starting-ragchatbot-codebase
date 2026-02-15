@@ -245,6 +245,29 @@ header h1 {
     color: var(--text-secondary);
 }
 
+/* Source link styling */
+.sources-content .source-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid transparent;
+}
+
+.sources-content .source-link:hover {
+    color: var(--primary-hover);
+    border-bottom-color: var(--primary-color);
+}
+
+.sources-content .source-link:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+.sources-content .source-link:visited {
+    color: #8b5cf6; /* Purple tint for visited links */
+}
+
 /* Markdown formatting styles */
 .message-content h1,
 .message-content h2,
