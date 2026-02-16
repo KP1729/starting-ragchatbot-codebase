@@ -6,7 +6,8 @@
       "Bash(git pull:*)",
       "Bash(echo:*)",
       "Bash(uv run -m pytest:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git merge:*)"
     ]
   }
 }
