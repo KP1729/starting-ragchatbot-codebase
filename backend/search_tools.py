@@ -196,10 +196,10 @@ class CourseOutlineTool(Tool):
 
 class ToolManager:
     """Manages available tools for the AI"""
-    
+
     def __init__(self):
         self.tools = {}
-    
+
     def register_tool(self, tool: Tool):
         """Register any tool that implements the Tool interface"""
         tool_def = tool.get_tool_definition()
@@ -207,71 +207,6 @@ class ToolManager:
         if not tool_name:
             raise ValueError("Tool must have a 'name' in its definition")
         self.tools[tool_name] = tool
-
-
-class CourseOutlineTool(Tool):
-    """Tool for retrieving complete course outlines and lesson lists"""
-
-    def __init__(self, vector_store: VectorStore):
-        self.store = vector_store
-        self.last_sources = []  # Track sources for consistency
-
-    def get_tool_definition(self) -> Dict[str, Any]:
-        """Return Anthropic tool definition for this tool"""
-        return {
-            "name": "get_course_outline",
-            "description": "Get the complete outline of a course including title, link, and all lessons with their numbers and titles",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "course_title": {
-                        "type": "string",
-                        "description": "Course title or partial name (e.g., 'MCP', 'Introduction to AI')"
-                    }
-                },
-                "required": ["course_title"]
-            }
-        }
-
-    def execute(self, course_title: str) -> str:
-        """
-        Execute the outline retrieval tool.
-
-        Args:
-            course_title: Course name to get outline for
-
-        Returns:
-            Formatted course outline or error message
-        """
-        outline = self.store.get_course_outline(course_title)
-
-        if not outline:
-            return f"No course found matching '{course_title}'"
-
-        # Store source for the UI
-        self.last_sources = [{
-            "text": outline["course_title"],
-            "link": outline["course_link"]
-        }]
-
-        return self._format_outline(outline)
-
-    def _format_outline(self, outline: Dict[str, Any]) -> str:
-        """Format course outline for Claude"""
-        formatted = [
-            outline['course_title'],
-            f"Course Link: {outline['course_link']}",
-            "",
-            "Course Outline:"
-        ]
-
-        for lesson in outline['lessons']:
-            lesson_num = lesson['lesson_number']
-            lesson_title = lesson['lesson_title']
-            formatted.append(f"• Lesson {lesson_num}: {lesson_title}")
-
-        return "\n".join(formatted)
-
 
     def get_tool_definitions(self) -> list:
         """Get all tool definitions for Anthropic tool calling"""
