@@ -15,7 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
     sendButton = document.getElementById('sendButton');
     totalCourses = document.getElementById('totalCourses');
     courseTitles = document.getElementById('courseTitles');
-    
+
+    initTheme();
     setupEventListeners();
     createNewSession();
     loadCourseStats();
@@ -38,6 +39,12 @@ function setupEventListeners() {
             sendMessage();
         });
     });
+
+    // Theme toggle
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+    }
 
     // New chat button
     const newChatButton = document.getElementById('newChatButton');
@@ -211,6 +218,73 @@ async function clearBackendSession(sessionId) {
         // Silent fail - session will be garbage collected eventually
         console.warn('Failed to clear backend session:', error);
     }
+}
+
+// Theme Toggle
+function initTheme() {
+    // Theme was already applied by the inline <script> in index.html to prevent FOUC.
+    // Here we just enable transitions now that the page has loaded,
+    // update the toggle button's aria-label, and listen for OS changes.
+
+    // Remove transition suppression after a frame so the browser has painted
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            document.documentElement.classList.remove('no-transitions');
+        });
+    });
+
+    updateToggleLabel();
+
+    // Listen for OS-level theme changes (only applies when no saved preference)
+    window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+        if (!localStorage.getItem('theme')) {
+            applyTheme(e.matches ? 'light' : 'dark', false);
+        }
+    });
+
+    // Keyboard shortcut: Ctrl+Shift+L to toggle theme
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.shiftKey && e.key === 'L') {
+            e.preventDefault();
+            toggleTheme();
+        }
+    });
+}
+
+function getCurrentTheme() {
+    return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+}
+
+function applyTheme(theme, save) {
+    if (theme === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+    } else {
+        document.documentElement.removeAttribute('data-theme');
+    }
+    // Keep color-scheme meta in sync for browser chrome (scrollbars, form controls)
+    var meta = document.querySelector('meta[name="color-scheme"]');
+    if (meta) meta.content = theme === 'light' ? 'light' : 'dark';
+    if (save) {
+        localStorage.setItem('theme', theme);
+    }
+    updateToggleLabel();
+}
+
+function toggleTheme() {
+    const next = getCurrentTheme() === 'light' ? 'dark' : 'light';
+    applyTheme(next, true);
+}
+
+function updateToggleLabel() {
+    const toggle = document.getElementById('themeToggle');
+    if (!toggle) return;
+    const current = getCurrentTheme();
+    toggle.setAttribute('aria-label',
+        current === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'
+    );
+    toggle.setAttribute('title',
+        current === 'dark' ? 'Switch to light mode (Ctrl+Shift+L)' : 'Switch to dark mode (Ctrl+Shift+L)'
+    );
 }
 
 // Load course statistics
