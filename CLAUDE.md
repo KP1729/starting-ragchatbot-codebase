@@ -8,8 +8,6 @@ This is a Retrieval-Augmented Generation (RAG) chatbot system that answers quest
 
 ## Development Commands
 
-**IMPORTANT**: This project uses `uv` as the package manager. Always use `uv` to run the server and manage all dependencies. Do NOT use `pip` directly for any dependency management tasks.
-
 ### Setup
 ```bash
 # Install dependencies (uses uv package manager)
@@ -198,7 +196,7 @@ Place files in `docs/` folder matching the required format. Supported extensions
 ### Modifying Chunking Behavior
 Edit `CHUNK_SIZE` and `CHUNK_OVERLAP` in config.py. Larger chunks provide more context but reduce granularity. More overlap improves context preservation but increases storage.
 
-### Changing Search Results
+### Changing Search Results1
 Modify `MAX_RESULTS` in config.py to return more/fewer chunks per search. More results give Claude more context but increase token usage.
 
 ### Adjusting Conversation Memory
