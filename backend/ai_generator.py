@@ -6,6 +6,9 @@ import anthropic
 class AIGenerator:
     """Handles interactions with Anthropic's Claude API for generating responses"""
 
+    MAX_TOOL_ROUNDS = 2
+    DIRECT_RETURN_TOOLS = frozenset({"get_course_outline"})
+
     # Static system prompt to avoid rebuilding on each call
     SYSTEM_PROMPT = """ You are an AI assistant specialized in course materials and educational content with access to comprehensive tools for course information.
 
@@ -17,7 +20,9 @@ Tool Usage Guidelines:
 - Use search_course_content for detailed questions about specific topics or lessons
 - Use get_course_outline for questions about course structure, lesson lists, or "what's in this course"
 - **You can make up to 2 rounds of tool calls to gather comprehensive information**
-- Use multiple rounds for complex queries that require information gathering then refinement
+  - Round 1: Initial search to gather relevant information
+  - Round 2: Refine or search additional context (different course, narrower lesson, related term)
+  - Most queries need only 1 tool call. Use a second only when the first result is insufficient.
 - Synthesize tool results into accurate, fact-based responses
 - If tools yield no results, state this clearly without offering alternatives
 
@@ -49,6 +54,15 @@ Provide only the direct answer to what was asked.
         # Pre-build base API parameters
         self.base_params = {"model": self.model, "temperature": 0, "max_tokens": 800}
 
+    def _call_api(self, **params):
+        """Make an Anthropic API call with standardized error handling."""
+        try:
+            return self.client.messages.create(**params)
+        except anthropic.AuthenticationError as e:
+            raise RuntimeError(f"Anthropic API authentication failed: {e}") from e
+        except anthropic.APIError as e:
+            raise RuntimeError(f"Anthropic API error: {e}") from e
+
     def generate_response(
         self,
         query: str,
@@ -58,7 +72,7 @@ Provide only the direct answer to what was asked.
     ) -> str:
         """
         Generate AI response with optional tool usage and conversation context.
-        Supports up to 2 sequential rounds of tool calling.
+        Supports up to MAX_TOOL_ROUNDS sequential rounds of tool calling.
 
         Args:
             query: The user's question or request
@@ -80,8 +94,8 @@ Provide only the direct answer to what was asked.
         # Start with initial messages
         messages = [{"role": "user", "content": query}]
 
-        # Execute up to 2 rounds of tool calling
-        for round_num in range(2):
+        # Execute up to MAX_TOOL_ROUNDS rounds of tool calling
+        for round_num in range(self.MAX_TOOL_ROUNDS):
             # Prepare API call parameters
             api_params = {
                 **self.base_params,
@@ -94,13 +108,7 @@ Provide only the direct answer to what was asked.
                 api_params["tools"] = tools
                 api_params["tool_choice"] = {"type": "auto"}
 
-            # Get response from Claude
-            try:
-                response = self.client.messages.create(**api_params)
-            except anthropic.AuthenticationError as e:
-                raise RuntimeError(f"Anthropic API authentication failed: {e}") from e
-            except anthropic.APIError as e:
-                raise RuntimeError(f"Anthropic API error: {e}") from e
+            response = self._call_api(**api_params)
 
             # Handle tool execution if needed
             if response.stop_reason == "tool_use" and tool_manager:
@@ -122,13 +130,7 @@ Provide only the direct answer to what was asked.
             "system": system_content,
         }
 
-        try:
-            final_response = self.client.messages.create(**final_params)
-        except anthropic.AuthenticationError as e:
-            raise RuntimeError(f"Anthropic API authentication failed: {e}") from e
-        except anthropic.APIError as e:
-            raise RuntimeError(f"Anthropic API error: {e}") from e
-
+        final_response = self._call_api(**final_params)
         return self._extract_text(final_response)
 
     @staticmethod
@@ -145,6 +147,10 @@ Provide only the direct answer to what was asked.
         """
         Handle execution of tool calls and update message history.
 
+        Executes ALL tool calls before deciding flow control. This ensures the
+        Anthropic API receives tool_result blocks for every tool_use block, even
+        if some tools fail.
+
         Args:
             initial_response: The response containing tool use requests
             messages: Current message history
@@ -157,46 +163,54 @@ Provide only the direct answer to what was asked.
         # Add AI's tool use response
         messages.append({"role": "assistant", "content": initial_response.content})
 
-        # Execute all tool calls and collect results
+        # Execute ALL tool calls and collect results
         tool_results = []
+        direct_return_result = None
+        has_error = False
+
         for content_block in initial_response.content:
-            if content_block.type == "tool_use":
-                try:
-                    tool_result = tool_manager.execute_tool(
-                        content_block.name, **content_block.input
-                    )
+            if content_block.type != "tool_use":
+                continue
 
-                    tool_results.append(
-                        {
-                            "type": "tool_result",
-                            "tool_use_id": content_block.id,
-                            "content": tool_result,
-                        }
-                    )
+            try:
+                tool_result = tool_manager.execute_tool(
+                    content_block.name, **content_block.input
+                )
 
-                    # Return outline tool results directly to avoid summarization
-                    if content_block.name == "get_course_outline":
-                        if tool_results:
-                            messages.append({"role": "user", "content": tool_results})
-                        return messages, False, tool_result
+                tool_results.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": content_block.id,
+                        "content": tool_result,
+                    }
+                )
 
-                except Exception as e:
-                    # Tool execution failed, stop rounds
-                    tool_results.append(
-                        {
-                            "type": "tool_result",
-                            "tool_use_id": content_block.id,
-                            "content": f"Error: Tool execution failed - {str(e)}",
-                        }
-                    )
-                    # Add tool results and signal to stop
-                    if tool_results:
-                        messages.append({"role": "user", "content": tool_results})
-                    return messages, False, None
+                # Mark outline results for direct return (but keep executing remaining tools)
+                if content_block.name in self.DIRECT_RETURN_TOOLS:
+                    direct_return_result = tool_result
 
-        # Add tool results as single message
+            except Exception as e:
+                has_error = True
+                tool_results.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": content_block.id,
+                        "content": f"Error: Tool execution failed - {str(e)}",
+                        "is_error": True,
+                    }
+                )
+
+        # Add all tool results as single message
         if tool_results:
             messages.append({"role": "user", "content": tool_results})
+
+        # Direct return takes priority (e.g. course outline)
+        if direct_return_result is not None:
+            return messages, False, direct_return_result
+
+        # Stop rounds if any tool failed
+        if has_error:
+            return messages, False, None
 
         # Continue with next round
         return messages, True, None
