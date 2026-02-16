@@ -61,9 +61,7 @@ class TestNoToolUsage:
 
 
 class TestSingleToolRound:
-    def test_tool_use_calls_tool_manager(
-        self, generator, tool_manager, sample_tools
-    ):
+    def test_tool_use_calls_tool_manager(self, generator, tool_manager, sample_tools):
         """When Claude returns tool_use, calls tool_manager.execute_tool()."""
         tool_response = make_anthropic_response(
             [
@@ -95,9 +93,7 @@ class TestSingleToolRound:
             "search_course_content", query="neural networks"
         )
 
-    def test_tool_use_then_synthesis(
-        self, generator, tool_manager, sample_tools
-    ):
+    def test_tool_use_then_synthesis(self, generator, tool_manager, sample_tools):
         """Round 1: tool_use -> execute -> Round 2: Claude synthesizes answer."""
         tool_response = make_anthropic_response(
             [
@@ -160,9 +156,7 @@ class TestSingleToolRound:
 
 
 class TestMultiRoundToolCalling:
-    def test_two_rounds_of_tool_calls(
-        self, generator, tool_manager, sample_tools
-    ):
+    def test_two_rounds_of_tool_calls(self, generator, tool_manager, sample_tools):
         """Loop executes up to 2 tool rounds before final synthesis call."""
         tool_response_1 = make_anthropic_response(
             [
@@ -302,7 +296,9 @@ class TestMultiRoundToolCalling:
         )
 
         # Verify both results sent back to API
-        second_call_msgs = generator.client.messages.create.call_args_list[1][1]["messages"]
+        second_call_msgs = generator.client.messages.create.call_args_list[1][1][
+            "messages"
+        ]
         tool_results_msg = second_call_msgs[-1]["content"]
         assert len(tool_results_msg) == 2
         assert tool_results_msg[0]["content"] == "Result A"
@@ -354,7 +350,9 @@ class TestMultiRoundToolCalling:
         assert tool_manager.execute_tool.call_count == 2
 
         # Verify both results (success + error) sent back to API
-        second_call_msgs = generator.client.messages.create.call_args_list[1][1]["messages"]
+        second_call_msgs = generator.client.messages.create.call_args_list[1][1][
+            "messages"
+        ]
         tool_results_msg = second_call_msgs[-1]["content"]
         assert len(tool_results_msg) == 2
         # First tool succeeded

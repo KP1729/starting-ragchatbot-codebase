@@ -26,12 +26,8 @@ class TestRAGQueryPipeline:
             rag = RAGSystem(config)
 
             # rag.tool_manager is now a MagicMock instance
-            rag.ai_generator.generate_response.return_value = (
-                "This is the answer."
-            )
-            rag.tool_manager.get_last_sources.return_value = [
-                "Course A - Lesson 1"
-            ]
+            rag.ai_generator.generate_response.return_value = "This is the answer."
+            rag.tool_manager.get_last_sources.return_value = ["Course A - Lesson 1"]
             rag.tool_manager.get_last_source_links.return_value = [
                 "https://example.com/1"
             ]
@@ -59,9 +55,7 @@ class TestRAGQueryPipeline:
         rag.query("test question")
 
         call_kwargs = rag.ai_generator.generate_response.call_args
-        assert call_kwargs.kwargs["tools"] == [
-            {"name": "search_course_content"}
-        ]
+        assert call_kwargs.kwargs["tools"] == [{"name": "search_course_content"}]
 
     def test_query_passes_tool_manager(self, mock_deps):
         """tool_manager instance is passed to generator for tool dispatch."""
@@ -94,9 +88,7 @@ class TestRAGQueryPipeline:
     def test_query_exception_propagates_to_caller(self, mock_deps):
         """When generator raises, exception propagates (no try/except in query())."""
         rag = mock_deps
-        rag.ai_generator.generate_response.side_effect = Exception(
-            "API auth failed"
-        )
+        rag.ai_generator.generate_response.side_effect = Exception("API auth failed")
 
         with pytest.raises(Exception, match="API auth failed"):
             rag.query("test question")
@@ -112,6 +104,5 @@ class TestRAGQueryPipeline:
 
         call_kwargs = rag.ai_generator.generate_response.call_args
         assert (
-            call_kwargs.kwargs["conversation_history"]
-            == "User: hi\nAssistant: hello"
+            call_kwargs.kwargs["conversation_history"] == "User: hi\nAssistant: hello"
         )

@@ -72,9 +72,7 @@ class TestCourseSearchToolExecute:
         """Empty results with course_name/lesson filters include filter info."""
         mock_store.search.return_value = make_search_results()
 
-        output = search_tool.execute(
-            query="topic", course_name="MCP", lesson_number=3
-        )
+        output = search_tool.execute(query="topic", course_name="MCP", lesson_number=3)
 
         assert "in course 'MCP'" in output
         assert "in lesson 3" in output
@@ -102,9 +100,7 @@ class TestToolManager:
         """ToolManager.execute_tool dispatches to the right tool."""
         mock_store.search.return_value = make_valid_search_results(1)
 
-        result = tool_manager.execute_tool(
-            "search_course_content", query="test query"
-        )
+        result = tool_manager.execute_tool("search_course_content", query="test query")
 
         mock_store.search.assert_called_once_with(
             query="test query", course_name=None, lesson_number=None
