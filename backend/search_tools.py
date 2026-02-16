@@ -177,19 +177,21 @@ class CourseOutlineTool(Tool):
 
             lessons = json.loads(lessons_json)
 
-            # Format the outline
-            outline = []
-            outline.append(f"**Course Title:** {metadata.get('title', course_title)}")
-            outline.append(f"**Course Link:** {metadata.get('course_link', 'N/A')}")
-            outline.append(f"**Total Lessons:** {len(lessons)}")
-            outline.append("\n**Lesson Outline:**")
+            # Format the outline with proper markdown
+            header = (
+                f"**Course Title:** {metadata.get('title', course_title)}\n\n"
+                f"**Course Link:** {metadata.get('course_link', 'N/A')}\n\n"
+                f"**Total Lessons:** {len(lessons)}\n\n"
+                f"**Lesson Outline:**\n"
+            )
 
+            lesson_lines = []
             for lesson in lessons:
                 lesson_num = lesson.get("lesson_number", "N/A")
                 lesson_title = lesson.get("lesson_title", "N/A")
-                outline.append(f"Lesson {lesson_num}: {lesson_title}")
+                lesson_lines.append(f"- **Lesson {lesson_num}:** {lesson_title}")
 
-            return "\n".join(outline)
+            return header + "\n".join(lesson_lines)
 
         except Exception as e:
             return f"Error retrieving course outline: {str(e)}"

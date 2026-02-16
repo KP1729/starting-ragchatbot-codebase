@@ -95,7 +95,12 @@ Provide only the direct answer to what was asked.
                 api_params["tool_choice"] = {"type": "auto"}
 
             # Get response from Claude
-            response = self.client.messages.create(**api_params)
+            try:
+                response = self.client.messages.create(**api_params)
+            except anthropic.AuthenticationError as e:
+                raise RuntimeError(f"Anthropic API authentication failed: {e}") from e
+            except anthropic.APIError as e:
+                raise RuntimeError(f"Anthropic API error: {e}") from e
 
             # Handle tool execution if needed
             if response.stop_reason == "tool_use" and tool_manager:
@@ -108,7 +113,7 @@ Provide only the direct answer to what was asked.
                     break
             else:
                 # No tool use, return direct response
-                return response.content[0].text
+                return self._extract_text(response)
 
         # After max rounds, make final call without tools to get response
         final_params = {
@@ -117,8 +122,24 @@ Provide only the direct answer to what was asked.
             "system": system_content,
         }
 
-        final_response = self.client.messages.create(**final_params)
-        return final_response.content[0].text
+        try:
+            final_response = self.client.messages.create(**final_params)
+        except anthropic.AuthenticationError as e:
+            raise RuntimeError(f"Anthropic API authentication failed: {e}") from e
+        except anthropic.APIError as e:
+            raise RuntimeError(f"Anthropic API error: {e}") from e
+
+        return self._extract_text(final_response)
+
+    @staticmethod
+    def _extract_text(response) -> str:
+        """Safely extract text from an API response, handling empty content."""
+        if not response.content:
+            return "I'm sorry, I wasn't able to generate a response. Please try again."
+        for block in response.content:
+            if hasattr(block, "text"):
+                return block.text
+        return "I'm sorry, I wasn't able to generate a response. Please try again."
 
     def _handle_tool_execution(self, initial_response, messages: List, tool_manager):
         """
