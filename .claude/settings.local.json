@@ -9,5 +9,18 @@
       "Bash(git commit:*)",
       "Bash(git merge:*)"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Read|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -Command \"Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('done');\""
+          }
+        ]
+      }
+    ]
   }
 }
